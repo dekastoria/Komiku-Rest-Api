@@ -5,11 +5,46 @@ const {
   getAbsoluteUrl,
   normalizeText,
   getImageUrl,
+  isAllowedChapterImageUrl,
+  getChapterImageFallbackUrl,
   extractMangaSlug,
   extractChapterNumber,
   extractChapterSlug,
   logEmptyParse,
 } = require("./scraperUtils");
+
+function extractChapterImages($) {
+  const imagesById = new Map();
+
+  $("#Baca_Komik img, img.ww, img[id]").each((_, el) => {
+    const img = $(el);
+    const src = getImageUrl($, img);
+    const id = normalizeText(img.attr("id"));
+
+    if (!src || !isAllowedChapterImageUrl(src) || !/^\d+$/.test(id)) {
+      return;
+    }
+
+    const page = Number(id);
+    if (!imagesById.has(page)) {
+      imagesById.set(page, {
+        src,
+        alt: normalizeText(img.attr("alt")),
+        id,
+        fallbackSrc: getChapterImageFallbackUrl(src),
+      });
+    }
+  });
+
+  return [...imagesById.entries()]
+    .sort(([a], [b]) => a - b)
+    .map(([, image]) => image);
+}
+
+function hasCompleteImageSet(images, totalImages) {
+  const expected = parseInt(totalImages, 10);
+  return !expected || images.length >= expected;
+}
 
 function extractSlugAndChapter(url) {
   const absoluteUrl = getAbsoluteUrl(url);
@@ -112,30 +147,7 @@ const getBacaChapter = async (req, res) => {
       if (key && value && key !== value) chapterInfo[key] = value;
     });
 
-    const images = [];
-    $("#Baca_Komik img, img.ww, img[id]").each((_, el) => {
-      const img = $(el);
-      const src = getImageUrl($, img);
-      const id = normalizeText(img.attr("id"));
-
-      if (
-        src &&
-        /(?:img|cdn|komiku)\.komiku\.org\/upload/i.test(src) &&
-        (!id || /^\d+$/.test(id))
-      ) {
-        images.push({
-          src,
-          alt: normalizeText(img.attr("alt")),
-          id,
-          fallbackSrc: src.replace("cdn.komiku.org", "img.komiku.org"),
-        });
-      }
-    });
-
-    const uniqueImages = images.filter(
-      (image, index, allImages) =>
-        image.src && allImages.findIndex((item) => item.src === image.src) === index
-    );
+    const uniqueImages = extractChapterImages($);
 
     const navigationLinks = $("#Judul")
       .parent()
@@ -185,18 +197,19 @@ const getBacaChapter = async (req, res) => {
       $("meta[itemprop='datePublished']").attr("content") ||
       normalizeText($("time").first().text());
 
-    if (!title || !uniqueImages.length) {
+    if (!title || !uniqueImages.length || !hasCompleteImageSet(uniqueImages, totalImages)) {
       logEmptyParse("GET /baca-chapter", data, {
         target: chapterUrl,
         titleFound: !!title,
         imagesFound: uniqueImages.length,
+        imagesExpected: parseInt(totalImages, 10) || 0,
         selectors: "#Judul h1, #Baca_Komik img, img.ww",
       });
 
       return res.status(502).json({
         error: "Gagal parsing data chapter komik dari Komiku.",
         detail:
-          "Struktur HTML chapter kemungkinan berubah atau gambar chapter kosong.",
+          "Struktur HTML chapter kemungkinan berubah atau daftar gambar chapter tidak lengkap.",
       });
     }
 
@@ -235,4 +248,9 @@ const getBacaChapter = async (req, res) => {
   }
 };
 
-module.exports = { getBacaChapter, extractSlugAndChapter };
+module.exports = {
+  getBacaChapter,
+  extractSlugAndChapter,
+  extractChapterImages,
+  hasCompleteImageSet,
+};

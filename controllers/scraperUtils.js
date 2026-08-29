@@ -75,6 +75,30 @@ function getImageUrl($, imgElement) {
   return getAbsoluteUrl(src);
 }
 
+function isAllowedChapterImageUrl(value) {
+  try {
+    const url = new URL(value);
+    const hostname = url.hostname.toLowerCase();
+    const trustedHost =
+      hostname === "img.komiku.org" ||
+      hostname === "cdn.komiku.org" ||
+      hostname === "komiku.komiku.org" ||
+      /^image\d+\.komiku\.to$/.test(hostname);
+
+    return url.protocol === "https:" && trustedHost && /^\/upload/i.test(url.pathname);
+  } catch (error) {
+    return false;
+  }
+}
+
+function getChapterImageFallbackUrl(value) {
+  if (!isAllowedChapterImageUrl(value)) return null;
+
+  const url = new URL(value);
+  url.hostname = "img.komiku.org";
+  return url.toString();
+}
+
 function extractMangaSlug(url) {
   if (!url) return "";
 
@@ -144,6 +168,8 @@ module.exports = {
   cleanTitle,
   safeText,
   getImageUrl,
+  isAllowedChapterImageUrl,
+  getChapterImageFallbackUrl,
   extractMangaSlug,
   extractChapterNumber,
   extractChapterSlug,

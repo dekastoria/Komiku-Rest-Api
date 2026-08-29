@@ -102,6 +102,35 @@ npm start
 
 By default, the server uses port `3001`. You can override it with the `PORT` environment variable.
 
+### VPS behind Nginx
+
+Install production dependencies and run the API on the loopback interface through your preferred process manager:
+
+```bash
+git clone https://github.com/dekastoria/Komiku-Rest-Api.git
+cd Komiku-Rest-Api
+npm ci --omit=dev
+NODE_ENV=production PORT=3001 npm start
+```
+
+Keep the browser-facing API path stable by proxying `/komiku-api/` to the service:
+
+```nginx
+location /komiku-api/ {
+    proxy_pass http://127.0.0.1:3001/;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+}
+```
+
+After reloading Nginx, verify a known mixed-host chapter returns all image IDs:
+
+```bash
+curl -s http://127.0.0.1:3001/baca-chapter/tsuihou-sareta-tenshou-juu-kishi-wa-game-chishiki-de-musou-suru/176
+```
+
 ## License
 
 ISC
