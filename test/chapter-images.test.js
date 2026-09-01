@@ -29,6 +29,14 @@ test("chapter image allowlist accepts current Komiku delivery hosts only", () =>
     true
   );
   assert.equal(
+    isAllowedChapterImageUrl("https://image2.komiku.to/wp-content/uploads/787916-1.jpg"),
+    true
+  );
+  assert.equal(
+    isAllowedChapterImageUrl("https://image7.komiku.to/wp-content/uploads/2271851-23.jpg"),
+    true
+  );
+  assert.equal(
     isAllowedChapterImageUrl("https://thumbnail.komiku.to/upload5/series/176/1.webp"),
     false
   );
@@ -37,7 +45,15 @@ test("chapter image allowlist accepts current Komiku delivery hosts only", () =>
     false
   );
   assert.equal(
+    isAllowedChapterImageUrl("https://image2.komiku.to.evil.invalid/wp-content/uploads/787916-1.jpg"),
+    false
+  );
+  assert.equal(
     isAllowedChapterImageUrl("http://img.komiku.org/upload5/series/176/1.webp"),
+    false
+  );
+  assert.equal(
+    isAllowedChapterImageUrl("https://img.komiku.org/wp-content/other/page.jpg"),
     false
   );
 });

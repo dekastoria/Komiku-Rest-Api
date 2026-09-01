@@ -84,8 +84,11 @@ function isAllowedChapterImageUrl(value) {
       hostname === "cdn.komiku.org" ||
       hostname === "komiku.komiku.org" ||
       /^image\d+\.komiku\.to$/.test(hostname);
+    const trustedPath =
+      /^\/upload/i.test(url.pathname) ||
+      /^\/wp-content\/uploads\//i.test(url.pathname);
 
-    return url.protocol === "https:" && trustedHost && /^\/upload/i.test(url.pathname);
+    return url.protocol === "https:" && trustedHost && trustedPath;
   } catch (error) {
     return false;
   }
