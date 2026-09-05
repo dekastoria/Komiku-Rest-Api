@@ -1,0 +1,11 @@
+services:
+  komiku-api:
+    build: .
+    container_name: komiku-api-orange
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: "3001"
+    ports:
+      - "100.95.206.66:3001:3001"
+    init: true
